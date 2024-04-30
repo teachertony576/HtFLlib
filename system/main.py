@@ -197,6 +197,12 @@ def run(args):
                 'AmazonMLP(feature_dim=[1000, 500])', 
                 'AmazonMLP(feature_dim=[1000, 500, 200])', 
             ]
+        elif args.model_family == "idsMLP_layers":
+            args.models = [
+                'Nidsv2MLP(in_features=41,num_classes=7,hidden_dim=128)', 
+                'Nidsv2MLP(in_features=41,num_classes=7,hidden_dim=200)', 
+                'Nidsv2MLP(in_features=41,num_classes=7,hidden_dim=256)', 
+            ]
 
         else:
             raise NotImplementedError
@@ -269,23 +275,23 @@ if __name__ == "__main__":
     parser.add_argument('-dev', "--device", type=str, default="cuda",
                         choices=["cpu", "cuda"])
     parser.add_argument('-did', "--device_id", type=str, default="0")
-    parser.add_argument('-data', "--dataset", type=str, default="mnist")
-    parser.add_argument('-nb', "--num_classes", type=int, default=10)
-    parser.add_argument('-m', "--model_family", type=str, default="cnn")
+    parser.add_argument('-data', "--dataset", type=str, default="Cicids2018v2-pat")
+    parser.add_argument('-nb', "--num_classes", type=int, default=7)
+    parser.add_argument('-m', "--model_family", type=str, default="idsMLP_layers")
     parser.add_argument('-lbs', "--batch_size", type=int, default=10)
     parser.add_argument('-lr', "--local_learning_rate", type=float, default=0.005,
                         help="Local learning rate")
     parser.add_argument('-ld', "--learning_rate_decay", type=bool, default=False)
     parser.add_argument('-ldg', "--learning_rate_decay_gamma", type=float, default=0.99)
-    parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
+    parser.add_argument('-gr', "--global_rounds", type=int, default=100)
     parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
                         help="Multiple update steps in one local epoch.")
-    parser.add_argument('-algo', "--algorithm", type=str, default="FedAvg")
+    parser.add_argument('-algo', "--algorithm", type=str, default="Local")
     parser.add_argument('-jr', "--join_ratio", type=float, default=1.0,
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,
                         help="Random ratio of clients per round")
-    parser.add_argument('-nc', "--num_clients", type=int, default=2,
+    parser.add_argument('-nc', "--num_clients", type=int, default=10,
                         help="Total number of clients")
     parser.add_argument('-pv', "--prev", type=int, default=0,
                         help="Previous Running times")

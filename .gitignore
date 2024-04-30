@@ -2,10 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+system/temp/
+results/
 # C extensions
 *.so
-/dataset/Cicids2018v2_testpat
+/dataset/
 # Distribution / packaging
 .Python
 build/

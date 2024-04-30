@@ -561,3 +561,26 @@ class TextCNN(nn.Module):
 #   @staticmethod
 #   def backward(ctx, grad_output):
 #     return grad_output
+
+# ====================================================================================================================
+#网络入侵检测V2数据集的MLP模型
+class Nidsv2MLP(nn.Module):
+    def __init__(self,in_features=41,num_classes=7,hidden_dim=128) -> None:
+        super(Nidsv2MLP, self).__init__()
+        self.fc1 = nn.Linear(41, 128)
+        self.norm1 = nn.LayerNorm(128)
+        self.fc2 = nn.Linear(128, 128)
+        self.norm2 = nn.LayerNorm(128)
+        self.fc = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.norm1(x)
+        x = F.relu(x)
+        x = self.fc2(x)
+        x = self.norm2(x)
+        x = F.relu(x)
+        x = self.fc(x)
+        x=F.log_softmax(x, dim=1)
+        # x = F.sigmoid(x)
+        return x
