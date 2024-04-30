@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+/dataset/Cicids2018v2_testpat
 # Distribution / packaging
 .Python
 build/
