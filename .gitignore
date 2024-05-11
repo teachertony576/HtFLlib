@@ -6,6 +6,7 @@ system/temp/
 results/
 # C extensions
 *.so
+*.out
 /dataset/
 # Distribution / packaging
 .Python
