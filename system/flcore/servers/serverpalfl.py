@@ -1,20 +1,20 @@
 
 import time
 import numpy as np
-from flcore.clients.clientdistill import clientDistill
+from flcore.clients.clientpalfl import clientpalfl
 from flcore.servers.serverbase import Server
 from flcore.clients.clientbase import load_item, save_item
 from threading import Thread
 from collections import defaultdict
 
 
-class FedDistill(Server):
+class PAL_FL(Server):
     def __init__(self, args, times):
         super().__init__(args, times)
 
         # select slow clients
         self.set_slow_clients()
-        self.set_clients(clientDistill)
+        self.set_clients(clientpalfl)
 
         print(f"\nJoin ratio / total clients: {self.join_ratio} / {self.num_clients}")
         print("Finished creating server and clients.")
@@ -44,6 +44,7 @@ class FedDistill(Server):
 
             self.receive_logits()
 
+
             self.Budget.append(time.time() - s_t)
             print('-'*50, self.Budget[-1])
 
@@ -68,12 +69,12 @@ class FedDistill(Server):
             self.uploaded_ids.append(client.id)
             logits = load_item(client.role, 'logits', client.save_folder_name)
             uploaded_logits.append(logits)
-            
+        
         global_logits = logit_aggregation(uploaded_logits)
         save_item(global_logits, self.role, 'global_logits', self.save_folder_name)
 
 
-# https://github.com/yuetan031/fedlogit/blob/main/lib/utils.py#L221
+
 def logit_aggregation(local_logits_list):
     agg_logits_label = defaultdict(list)
     for local_logits in local_logits_list:

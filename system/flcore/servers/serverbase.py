@@ -8,7 +8,7 @@ import random
 import shutil
 from utils.data_utils import read_client_data
 from flcore.clients.clientbase import load_item, save_item
-
+from torch.utils.data import DataLoader
 
 class Server(object):
     def __init__(self, args, times):
@@ -20,6 +20,7 @@ class Server(object):
         self.global_rounds = args.global_rounds
         self.local_epochs = args.local_epochs
         self.batch_size = args.batch_size
+        self.publicdata_batch_size = args.publicdata_batch_size
         self.learning_rate = args.local_learning_rate
         self.num_clients = args.num_clients
         self.join_ratio = args.join_ratio
@@ -52,13 +53,18 @@ class Server(object):
         self.rs_test_acc = []
         self.rs_test_auc = []
         self.rs_train_loss = []
-
+        self.publicdata_name = args.public_data
         self.times = times
         self.eval_gap = args.eval_gap
         self.client_drop_rate = args.client_drop_rate
         self.train_slow_rate = args.train_slow_rate
         self.send_slow_rate = args.send_slow_rate
 
+    def load_public_data(self, batch_size=None):#返回公共数据集，默认是取数据集中train文件夹中0.npz的数据
+        if batch_size == None:
+            batch_size = self.publicdata_batch_size
+        train_data = read_client_data(self.publicdata_name, 0, is_train=True)
+        return DataLoader(train_data, batch_size, drop_last=True, shuffle=False)
 
     def set_clients(self, clientObj):
         for i, train_slow, send_slow in zip(range(self.num_clients), self.train_slow_clients, self.send_slow_clients):
