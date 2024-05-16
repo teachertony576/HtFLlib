@@ -52,6 +52,8 @@ class PAL_FL(Server):
             clients_logits=self.receive_logits()
             self.update_c(clients_logits)
             self.weight_trans(self.weight, clients_logits)
+            for client in self.selected_clients:
+                client.train_publicdata()
 
 
 
@@ -100,28 +102,28 @@ class PAL_FL(Server):
             for teach_idx in self.selected_clients_ids:
                 self.weight[self_idx][teach_idx]=cos_sim[self_idx][teach_idx]
 
-    def weight_trans(self,weight, logits_matrix):
+    def weight_trans(self,weight, clients_logits):
         """weight transport the logits_matrix
 
         Args:
             weight: shape as [num_clients, num_clients], element means c_i->c_j weight
             logits_matrix: [num_data_alignment, num_classes, num_clients],
-                meas the clients' logits for each data
+                
         """
         num_clients = self.num_clients
-        assert num_clients == logits_matrix.size(0), \
-            f"weight size {num_clients}, logits long: {logits_matrix.size(-1)}"
+        assert num_clients == len(clients_logits), \
+            f"weight size {num_clients}, logits long: {clients_logits.size(0)}"
 
         new_logits_list = []
-        for i in range(num_clients):
-            new_logits_i = torch.zeros_like(logits_matrix[:, :, i])
-            for j in range(num_clients):
-                new_logits_i += weight[i][j] * logits_matrix[:, :, j]
-            new_logits_i=0.7*new_logits_i+0.3*logits_matrix[:, :, i]
-            new_logits_list.append(new_logits_i)
+        for i in self.selected_clients_ids:
+            new_logits_i = torch.zeros_like(clients_logits[i])
+            for j in self.selected_clients_ids:
+                if i == j:
+                    continue
+                new_logits_i += weight[i][j] * clients_logits[j]
+            new_logits_i=0.7*new_logits_i+0.3*clients_logits[i]
+            save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
 
-        new_logits_matrix = torch.stack(new_logits_list, dim=-1)
-        return new_logits_matrix
 
 
 

@@ -5,12 +5,13 @@ import numpy as np
 import time
 from flcore.clients.clientbase import Client, load_item, save_item
 from collections import defaultdict
-
+from utils.data_utils import VanillaKDLoss
 
 class clientpalfl(Client):
     def __init__(self, args, id, train_samples, test_samples, **kwargs):
         super().__init__(args, id, train_samples, test_samples, **kwargs)
         torch.manual_seed(0)
+        self.distill_loss_fn = VanillaKDLoss(temperature=args.temperature)
 
         self.lamda = args.lamda
 
@@ -19,7 +20,7 @@ class clientpalfl(Client):
         trainloader = self.load_train_data()
         model = load_item(self.role, 'model', self.save_folder_name)
         optimizer = torch.optim.SGD(model.parameters(), lr=self.learning_rate)
-        global_logits = load_item('Server', 'global_logits', self.save_folder_name)
+        #global_logits = load_item('Server', 'global_logits', self.save_folder_name)
         
         start_time = time.time()
 
@@ -57,6 +58,7 @@ class clientpalfl(Client):
             x = x.to(self.device)
         output = model(x)
         logits.append(output)
+        logits = torch.cat(logits, dim=0)
 
         save_item(model, self.role, 'model', self.save_folder_name)
         save_item(logits, self.role, 'logits', self.save_folder_name)
@@ -96,21 +98,27 @@ class clientpalfl(Client):
                 losses += loss.item() * y.shape[0]
 
         return losses, train_num
+    
 
+    def train_publicdata(self):
+        model = load_item(self.role, 'model', self.save_folder_name)
+        optimizer = torch.optim.SGD(model.parameters(), lr=self.learning_rate)
+        pal_logits = load_item(self.role, 'pal_logits', self.save_folder_name)
 
-# https://github.com/yuetan031/fedlogit/blob/main/lib/utils.py#L205
-def agg_func(logits):
-    """
-    Returns the average of the weights.
-    """
+        # model.to(self.device)
+        model.train()
 
-    for [label, logit_list] in logits.items():
-        if len(logit_list) > 1:
-            logit = 0 * logit_list[0].data
-            for i in logit_list:
-                logit += i.data
-            logits[label] = logit / len(logit_list)
+        x,y=self.public_data
+        if type(x) == type([]):
+            x[0] = x[0].to(self.device)
         else:
-            logits[label] = logit_list[0]
+            x = x.to(self.device)
+        output = model(x)
+        loss = self.distill_loss_fn(output, pal_logits)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        save_item(model, self.role, 'model', self.save_folder_name)
 
-    return logits
+
+

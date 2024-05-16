@@ -280,7 +280,7 @@ if __name__ == "__main__":
     parser.add_argument('-dev', "--device", type=str, default="cuda",
                         choices=["cpu", "cuda"])
     parser.add_argument('-did', "--device_id", type=str, default="0")
-    parser.add_argument('-data', "--dataset", type=str, default="Cifar100")
+    parser.add_argument('-data', "--dataset", type=str, default="Cifar100-dir")
     parser.add_argument('-nb', "--num_classes", type=int, default=100)
     parser.add_argument('-m', "--model_family", type=str, default="HtFE8")
     parser.add_argument('-lbs', "--batch_size", type=int, default=10)
@@ -297,7 +297,7 @@ if __name__ == "__main__":
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,
                         help="Random ratio of clients per round")
-    parser.add_argument('-nc', "--num_clients", type=int, default=2,
+    parser.add_argument('-nc', "--num_clients", type=int, default=20,
                         help="Total number of clients")
     parser.add_argument('-pv', "--prev", type=int, default=0,
                         help="Previous Running times")
@@ -349,7 +349,7 @@ if __name__ == "__main__":
 
     #PAL_FL
     parser.add_argument('-T', "--temperature", type=float, default=20.0)#蒸馏温度
-    parser.add_argument('-pd', "--public_data", type=str, default="Cifar100_piblicdata")
+    parser.add_argument('-pd', "--public_data", type=str, default="Cifar10")
 
     args = parser.parse_args()
 

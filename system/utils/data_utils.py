@@ -3,6 +3,8 @@ import os
 import torch
 from torch.utils.data import DataLoader, TensorDataset, RandomSampler, BatchSampler
 import random
+import torch.nn.functional as F
+from torch import nn
 
 def read_data(dataset, idx, is_train=True):
     if is_train:
@@ -114,3 +116,21 @@ def read_public_data(dataset, idx, is_train=True):
         y_test = torch.Tensor(test_data['y']).type(torch.int64)
         test_data = [(x, y) for x, y in zip(X_test, y_test)]
         return test_data
+    
+    import torch.nn.functional as F
+
+
+class VanillaKDLoss(nn.Module):
+    """ According to: Distilling the Knowledge in a Neural Network,
+        https://arxiv.org/pdf/1503.02531.pdf
+    """
+
+    def __init__(self, temperature):
+        super(VanillaKDLoss, self).__init__()
+        self.temperature = temperature
+
+    def forward(self, student_logits, teacher_logits):
+        loss = F.kl_div(F.log_softmax(student_logits / self.temperature, dim=-1),
+                        F.softmax(teacher_logits / self.temperature, dim=-1),
+                        reduction='batchmean') * self.temperature * self.temperature
+        return loss
