@@ -51,14 +51,15 @@ class clientpalfl(Client):
         #输出公共数据集的logits
         model.eval()
         logits =[]
-        x,y=self.public_data
-        if type(x) == type([]):
-            x[0] = x[0].to(self.device)
-        else:
-            x = x.to(self.device)
-        output = model(x)
-        logits.append(output)
-        logits = torch.cat(logits, dim=0)
+        with torch.no_grad():#减少显卡的使用
+            x,y=self.public_data
+            if type(x) == type([]):
+                x[0] = x[0].to(self.device)
+            else:
+                x = x.to(self.device)
+            output = model(x)
+            logits.append(output)
+            logits = torch.cat(logits, dim=0)
 
         save_item(model, self.role, 'model', self.save_folder_name)
         save_item(logits, self.role, 'logits', self.save_folder_name)
