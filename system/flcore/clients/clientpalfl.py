@@ -7,7 +7,7 @@ from flcore.clients.clientbase import Client, load_item, save_item
 from collections import defaultdict
 
 
-class clientDistill(Client):
+class clientpalfl(Client):
     def __init__(self, args, id, train_samples, test_samples, **kwargs):
         super().__init__(args, id, train_samples, test_samples, **kwargs)
         torch.manual_seed(0)
@@ -30,7 +30,8 @@ class clientDistill(Client):
         if self.train_slow:
             max_local_epochs = np.random.randint(1, max_local_epochs // 2)
 
-        logits = defaultdict(list)
+
+        #使用本地数据集进行训练
         for step in range(max_local_epochs):
             for i, (x, y) in enumerate(trainloader):
                 if type(x) == type([]):
@@ -42,25 +43,23 @@ class clientDistill(Client):
                     time.sleep(0.1 * np.abs(np.random.rand()))
                 output = model(x)
                 loss = self.loss(output, y)
-
-                if global_logits != None:
-                    logit_new = copy.deepcopy(output.detach())
-                    for i, yy in enumerate(y):
-                        y_c = yy.item()
-                        if type(global_logits[y_c]) != type([]):
-                            logit_new[i, :] = global_logits[y_c].data
-                    loss += self.loss(output, logit_new.softmax(dim=1)) * self.lamda
-
-                for i, yy in enumerate(y):
-                    y_c = yy.item()
-                    logits[y_c].append(output[i, :].detach().data)
-
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
+        #输出公共数据集的logits
+        model.eval()
+        logits =[]
+        x,y=self.public_data
+        if type(x) == type([]):
+            x[0] = x[0].to(self.device)
+        else:
+            x = x.to(self.device)
+        output = model(x)
+        logits.append(output)
+
         save_item(model, self.role, 'model', self.save_folder_name)
-        save_item(agg_func(logits), self.role, 'logits', self.save_folder_name)
+        save_item(logits, self.role, 'logits', self.save_folder_name)
 
         self.train_time_cost['num_rounds'] += 1
         self.train_time_cost['total_cost'] += time.time() - start_time

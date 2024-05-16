@@ -6,19 +6,23 @@ from flcore.servers.serverbase import Server
 from flcore.clients.clientbase import load_item, save_item
 from threading import Thread
 from collections import defaultdict
+from utils.data_utils import get_random_batch
+import torch.nn.functional as F
+import torch
 
 
 class PAL_FL(Server):
     def __init__(self, args, times):
         super().__init__(args, times)
-
+        self.temperature = args.temperature
         # select slow clients
         self.set_slow_clients()
         self.set_clients(clientpalfl)
-
+        self.weight = torch.ones(size=(self.num_clients, self.num_clients)) / self.num_clients#初始化个性标签影响因子
         print(f"\nJoin ratio / total clients: {self.join_ratio} / {self.num_clients}")
         print("Finished creating server and clients.")
 
+        self.public_data=self.load_public_data()#返回的DataLoader类型
         # self.load_model()
         self.Budget = []
         self.num_classes = args.num_classes
@@ -29,12 +33,15 @@ class PAL_FL(Server):
             s_t = time.time()
             self.selected_clients = self.select_clients()
 
+            public_data_random = get_random_batch(self.public_data)#从公共数据集中随机返回一个batch的数据
+
             if i%self.eval_gap == 0:
                 print(f"\n-------------Round number: {i}-------------")
                 print("\nEvaluate heterogeneous models")
                 self.evaluate()
 
             for client in self.selected_clients:
+                client.public_data=public_data_random#将全局的公共数据集传递给每个client
                 client.train()
 
             # threads = [Thread(target=client.train)
@@ -42,7 +49,10 @@ class PAL_FL(Server):
             # [t.start() for t in threads]
             # [t.join() for t in threads]
 
-            self.receive_logits()
+            clients_logits=self.receive_logits()
+            self.update_c(clients_logits)
+            self.weight_trans(self.weight, clients_logits)
+
 
 
             self.Budget.append(time.time() - s_t)
@@ -63,31 +73,57 @@ class PAL_FL(Server):
     def receive_logits(self):
         assert (len(self.selected_clients) > 0)
 
-        self.uploaded_ids = []
-        uploaded_logits = []
+        self.selected_clients_ids = []
+        zero_logits=load_item(self.selected_clients[0].role, 'logits', self.selected_clients[0].save_folder_name)[0] * 0.
+        uploaded_logits = [zero_logits for _ in range(self.num_clients)]
         for client in self.selected_clients:
-            self.uploaded_ids.append(client.id)
+            self.selected_clients_ids.append(client.id)
             logits = load_item(client.role, 'logits', client.save_folder_name)
-            uploaded_logits.append(logits)
-        
-        global_logits = logit_aggregation(uploaded_logits)
-        save_item(global_logits, self.role, 'global_logits', self.save_folder_name)
+            uploaded_logits[client.id]=logits
+        return uploaded_logits#这是个列表list
+    
+    def update_c(self,clients_logits):
+        # weight: shape as [num_clients, num_clients], element means c_i->c_j weight
+        # clients' logits matrix before update c
+        #raw_logits_matrix = torch.stack(clients_logits, dim=-1)
+        #T_raw_logits_matrix=raw_logits_matrix/self.temperature
+        #weighted_logits_matrix = self.weight_trans(self.weight, raw_logits_matrix)
+        for self_idx in self.selected_clients_ids:
+            self_logits_local=clients_logits[self_idx]
+            cos_sim=torch.zeros(self.num_clients,self.num_clients)
+            for ids in self.selected_clients_ids:
+                cos_sim[self_idx][ids]=torch.mean(torch.cosine_similarity(clients_logits[self_idx]/ self.temperature,clients_logits[ids]/ self.temperature))#先计算相似度
+            cos_sim[self_idx][self_idx]=0.0#自己不能蒸馏自己
+
+            cos_sim=F.softmax(cos_sim,dim=1)
+
+            for teach_idx in self.selected_clients_ids:
+                self.weight[self_idx][teach_idx]=cos_sim[self_idx][teach_idx]
+
+    def weight_trans(self,weight, logits_matrix):
+        """weight transport the logits_matrix
+
+        Args:
+            weight: shape as [num_clients, num_clients], element means c_i->c_j weight
+            logits_matrix: [num_data_alignment, num_classes, num_clients],
+                meas the clients' logits for each data
+        """
+        num_clients = self.num_clients
+        assert num_clients == logits_matrix.size(0), \
+            f"weight size {num_clients}, logits long: {logits_matrix.size(-1)}"
+
+        new_logits_list = []
+        for i in range(num_clients):
+            new_logits_i = torch.zeros_like(logits_matrix[:, :, i])
+            for j in range(num_clients):
+                new_logits_i += weight[i][j] * logits_matrix[:, :, j]
+            new_logits_i=0.7*new_logits_i+0.3*logits_matrix[:, :, i]
+            new_logits_list.append(new_logits_i)
+
+        new_logits_matrix = torch.stack(new_logits_list, dim=-1)
+        return new_logits_matrix
 
 
 
-def logit_aggregation(local_logits_list):
-    agg_logits_label = defaultdict(list)
-    for local_logits in local_logits_list:
-        for label in local_logits.keys():
-            agg_logits_label[label].append(local_logits[label])
 
-    for [label, logit_list] in agg_logits_label.items():
-        if len(logit_list) > 1:
-            logit = 0 * logit_list[0].data
-            for i in logit_list:
-                logit += i.data
-            agg_logits_label[label] = logit / len(logit_list)
-        else:
-            agg_logits_label[label] = logit_list[0].data
 
-    return agg_logits_label

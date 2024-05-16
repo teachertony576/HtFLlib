@@ -64,7 +64,7 @@ class Server(object):
         if batch_size == None:
             batch_size = self.publicdata_batch_size
         train_data = read_client_data(self.publicdata_name, 0, is_train=True)
-        return DataLoader(train_data, batch_size, drop_last=True, shuffle=False)
+        return DataLoader(train_data, batch_size, drop_last=True, shuffle=True)#公共数据集，可以再次shuffle
 
     def set_clients(self, clientObj):
         for i, train_slow, send_slow in zip(range(self.num_clients), self.train_slow_clients, self.send_slow_clients):

@@ -1,7 +1,8 @@
 import numpy as np
 import os
 import torch
-
+from torch.utils.data import DataLoader, TensorDataset, RandomSampler, BatchSampler
+import random
 
 def read_data(dataset, idx, is_train=True):
     if is_train:
@@ -22,6 +23,16 @@ def read_data(dataset, idx, is_train=True):
 
         return test_data
 
+# 获取 DataLoader 中的一个随机批次
+def get_random_batch(dataset):
+    # 随机选择一个批次的索引
+    num_batches = len(dataset)
+    random_index = random.randint(0, num_batches - 1)
+    
+    # 获取随机批次
+    for i, batch in enumerate(dataset):
+        if i == random_index:
+            return batch
 
 def read_client_data(dataset, idx, is_train=True):
     if dataset[:2] == "ag" or dataset[:2] == "DB":
