@@ -61,7 +61,7 @@ class clientTGP_PAL(Client):
                 
                 inon_target_loss = self.distill_loss_fn(non_target_soft_outputs, non_target_soft_prev_outputs)
                 #inon_target_loss = inon_target_loss * (self.T ** 2)#会造成loss变得很大
-                loss+=0.2*inon_target_loss
+                loss+=inon_target_loss
 
                 if global_protos is not None:
                     proto_new = copy.deepcopy(rep.detach())
