@@ -36,6 +36,7 @@ class clientpalfl_notarget(Client):
             max_local_epochs = np.random.randint(1, max_local_epochs // 2)
 
         criterionKL = nn.KLDivLoss(reduction='batchmean')
+        criterionKL.to(self.device)
         #使用本地数据集进行训练
         for step in range(max_local_epochs):
             for i, (x, y) in enumerate(trainloader):
