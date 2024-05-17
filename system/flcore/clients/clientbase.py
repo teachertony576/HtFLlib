@@ -37,6 +37,8 @@ class Client(object):
             save_item(model, self.role, 'model', self.save_folder_name)
             if self.algorithm == 'PAL_FL_notarget':
                 save_item(model, self.role, 'prev_model', self.save_folder_name)
+            if self.algorithm == 'FedTGP_PAL':
+                save_item(model, self.role, 'prev_model', self.save_folder_name)
 
         self.train_slow = kwargs['train_slow']
         self.send_slow = kwargs['send_slow']

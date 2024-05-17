@@ -49,8 +49,8 @@ class clientpalfl_notarget(Client):
                     time.sleep(0.1 * np.abs(np.random.rand()))
                 output = model(x)
                 loss = self.loss(output, y)
+                
                 #非目标蒸馏
-
                 soft_outputs=F.softmax(output / self.T, dim=1)
                 non_targets_mask = torch.ones(self.publicdata_batch_size, self.num_classes).to(self.device).scatter_(1, y.view(-1, 1), 0)
                 non_target_soft_outputs = soft_outputs[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes - 1)

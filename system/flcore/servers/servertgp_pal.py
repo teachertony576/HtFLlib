@@ -2,21 +2,21 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from flcore.clients.clienttgp import clientTGP
+from flcore.clients.clienttgp_pal import clientTGP_PAL
 from flcore.servers.serverbase import Server
 from flcore.clients.clientbase import load_item, save_item
 from threading import Thread
 from collections import defaultdict
 from torch.utils.data import DataLoader
+from utils.data_utils import get_random_batch
 
-
-class FedTGP(Server):
+class FedTGP_PAL(Server):
     def __init__(self, args, times):
         super().__init__(args, times)
 
         # select slow clients
         self.set_slow_clients()
-        self.set_clients(clientTGP)
+        self.set_clients(clientTGP_PAL)
 
         print(f"\nJoin ratio / total clients: {self.join_ratio} / {self.num_clients}")
         print("Finished creating server and clients.")
@@ -32,7 +32,6 @@ class FedTGP(Server):
 
         self.feature_dim = args.feature_dim
         self.server_hidden_dim = self.feature_dim
-        
         if args.save_folder_name == 'temp' or 'temp' not in args.save_folder_name:
             PROTO = Trainable_prototypes(
                 self.num_classes, 
@@ -48,12 +47,17 @@ class FedTGP(Server):
         self.gap = torch.ones(self.num_classes, device=self.device) * 1e9
         self.min_gap = None
         self.max_gap = None
+        #PAL部分
+        self.weight = torch.ones(size=(self.num_clients, self.num_clients)) / self.num_clients#初始化个性标签影响因子
+        self.public_data=self.load_public_data()#返回的DataLoader类型
+        self.temperature = args.temperature
 
 
     def train(self):
         for i in range(self.global_rounds+1):
             s_t = time.time()
             self.selected_clients = self.select_clients()
+            public_data_random = get_random_batch(self.public_data)#从公共数据集中随机返回一个batch的数据
 
             if i%self.eval_gap == 0:
                 print(f"\n-------------Round number: {i}-------------")
@@ -61,12 +65,20 @@ class FedTGP(Server):
                 self.evaluate()
 
             for client in self.selected_clients:
+                client.public_data=public_data_random#将全局的公共数据集传递给每个client
                 client.train()
 
             # threads = [Thread(target=client.train)
             #            for client in self.selected_clients]
             # [t.start() for t in threads]
             # [t.join() for t in threads]
+            
+            #PAL部分
+            clients_logits=self.receive_logits()
+            self.update_c(clients_logits)
+            self.weight_trans(self.weight, clients_logits)
+            for client in self.selected_clients:
+                client.train_publicdata()
 
             self.receive_protos()
             self.update_Gen()
@@ -153,6 +165,63 @@ class FedTGP(Server):
         for class_id in range(self.num_classes):
             global_protos[class_id] = PROTO(torch.tensor(class_id, device=self.device)).detach()
         save_item(global_protos, self.role, 'global_protos', self.save_folder_name)
+
+
+    def receive_logits(self):
+        assert (len(self.selected_clients) > 0)
+
+        self.selected_clients_ids = []
+        zero_logits=load_item(self.selected_clients[0].role, 'logits', self.selected_clients[0].save_folder_name)[0] * 0.
+        uploaded_logits = [zero_logits for _ in range(self.num_clients)]
+        for client in self.selected_clients:
+            self.selected_clients_ids.append(client.id)
+            logits = load_item(client.role, 'logits', client.save_folder_name)
+            uploaded_logits[client.id]=logits
+        return uploaded_logits#这是个列表list
+    
+    def update_c(self,clients_logits):
+        # weight: shape as [num_clients, num_clients], element means c_i->c_j weight
+        # clients' logits matrix before update c
+        #raw_logits_matrix = torch.stack(clients_logits, dim=-1)
+        #T_raw_logits_matrix=raw_logits_matrix/self.temperature
+        #weighted_logits_matrix = self.weight_trans(self.weight, raw_logits_matrix)
+        for self_idx in self.selected_clients_ids:
+            self_logits_local=clients_logits[self_idx]
+            cos_sim=torch.zeros(self.num_clients,self.num_clients)
+            for ids in self.selected_clients_ids:
+                cos_sim[self_idx][ids]=torch.mean(torch.cosine_similarity(clients_logits[self_idx]/ self.temperature,clients_logits[ids]/ self.temperature))#先计算相似度
+            cos_sim[self_idx][self_idx]=0.0#自己不能蒸馏自己
+
+            cos_sim=F.softmax(cos_sim,dim=1)
+
+            for teach_idx in self.selected_clients_ids:
+                self.weight[self_idx][teach_idx]=cos_sim[self_idx][teach_idx]
+
+    def weight_trans(self,weight, clients_logits):
+        """weight transport the logits_matrix
+
+        Args:
+            weight: shape as [num_clients, num_clients], element means c_i->c_j weight
+            logits_matrix: [num_data_alignment, num_classes, num_clients],
+                
+        """
+        num_clients = self.num_clients
+        assert num_clients == len(clients_logits), \
+            f"weight size {num_clients}, logits long: {clients_logits.size(0)}"
+
+        new_logits_list = []
+        for i in self.selected_clients_ids:
+            new_logits_i = torch.zeros_like(clients_logits[i])
+            for j in self.selected_clients_ids:
+                if i == j:
+                    continue
+                new_logits_i += weight[i][j] * clients_logits[j]
+            new_logits_i=0.7*new_logits_i+0.3*clients_logits[i]
+            save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
+
+
+
+
 
 
 def proto_cluster(protos_list):
