@@ -51,7 +51,7 @@ class FedTGP_PAL(Server):
         self.weight = torch.ones(size=(self.num_clients, self.num_clients)) / self.num_clients#初始化个性标签影响因子
         self.public_data=self.load_public_data()#返回的DataLoader类型
         self.temperature = args.temperature
-
+        self.Tau = args.Tau
 
     def train(self):
         for i in range(self.global_rounds+1):
@@ -216,7 +216,7 @@ class FedTGP_PAL(Server):
                 if i == j:
                     continue
                 new_logits_i += weight[i][j] * clients_logits[j]
-            new_logits_i=0.7*new_logits_i+0.3*clients_logits[i]
+            new_logits_i=(1-self.Tau)*new_logits_i+self.Tau*clients_logits[i]
             save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
 
 

@@ -26,6 +26,7 @@ class PAL_FL_notarget(Server):
         # self.load_model()
         self.Budget = []
         self.num_classes = args.num_classes
+        self.Tau = args.Tau
 
 
     def train(self):
@@ -121,7 +122,7 @@ class PAL_FL_notarget(Server):
                 if i == j:
                     continue
                 new_logits_i += weight[i][j] * clients_logits[j]
-            new_logits_i=0.7*new_logits_i+0.3*clients_logits[i]
+            new_logits_i=(1-self.Tau)*new_logits_i+self.Tau*clients_logits[i]
             save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
 
 

@@ -299,12 +299,12 @@ if __name__ == "__main__":
     parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
     parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
                         help="Multiple update steps in one local epoch.")
-    parser.add_argument('-algo', "--algorithm", type=str, default="FedTGP_PAL",)
+    parser.add_argument('-algo', "--algorithm", type=str, default="PAL_FL_notarget",)
     parser.add_argument('-jr', "--join_ratio", type=float, default=1,
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,
                         help="Random ratio of clients per round")
-    parser.add_argument('-nc', "--num_clients", type=int, default=20,
+    parser.add_argument('-nc', "--num_clients", type=int, default=2,
                         help="Total number of clients")
     parser.add_argument('-pv', "--prev", type=int, default=0,
                         help="Previous Running times")
@@ -358,6 +358,7 @@ if __name__ == "__main__":
     parser.add_argument('-T', "--temperature", type=float, default=20.0)#蒸馏温度
     parser.add_argument('-pd', "--public_data", type=str, default="Cifar10")
     parser.add_argument('-lT', "--local_temperature", type=float, default=20.0)#本地蒸馏温度
+    parser.add_argument('-Tau', "--Tau", type=float, default=1.0)#服务器端个性化聚合标签的时比例
 
     args = parser.parse_args()
 
