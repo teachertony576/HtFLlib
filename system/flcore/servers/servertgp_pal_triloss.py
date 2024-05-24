@@ -2,22 +2,21 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from flcore.clients.clienttgp_pal import clientTGP_PAL
+from flcore.clients.clienttgp_pal_triloss import clientTGP_PAL_triloss
 from flcore.servers.serverbase import Server
 from flcore.clients.clientbase import load_item, save_item
 from threading import Thread
 from collections import defaultdict
 from torch.utils.data import DataLoader
 from utils.data_utils import get_random_batch
-import random
 
-class FedTGP_PAL(Server):
+class FedTGP_PAL_triloss(Server):
     def __init__(self, args, times):
         super().__init__(args, times)
 
         # select slow clients
         self.set_slow_clients()
-        self.set_clients(clientTGP_PAL)
+        self.set_clients(clientTGP_PAL_triloss)
 
         print(f"\nJoin ratio / total clients: {self.join_ratio} / {self.num_clients}")
         print("Finished creating server and clients.")
@@ -219,17 +218,6 @@ class FedTGP_PAL(Server):
                 new_logits_i += weight[i][j] * clients_logits[j]
             new_logits_i=(1-self.Tau)*new_logits_i+self.Tau*clients_logits[i]
             save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
-
-    def semi_hard_negative_mining(anchor_embedding, embeddings, labels, margin):
-        negative_indices = [i for i, label in enumerate(labels) if label != anchor_label]
-        negative_embeddings = [embeddings[i] for i in negative_indices]
-        distances = [torch.dist(anchor_embedding, emb) for emb in negative_embeddings]
-        semi_hard_negatives = [negative_indices[i] for i, dist in enumerate(distances) if dist > margin]
-        if semi_hard_negatives:
-            return random.choice(semi_hard_negatives)
-        else:
-            return random.choice(negative_indices)
-
 
 
 
