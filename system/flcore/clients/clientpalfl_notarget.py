@@ -48,6 +48,7 @@ class clientpalfl_notarget(Client):
                 y = y.to(self.device)
                 if self.train_slow:
                     time.sleep(0.1 * np.abs(np.random.rand()))
+                    
                 output = model(x)
                 loss = self.loss(output, y)
 

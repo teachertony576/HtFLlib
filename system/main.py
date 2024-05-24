@@ -299,7 +299,7 @@ if __name__ == "__main__":
     parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
     parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
                         help="Multiple update steps in one local epoch.")
-    parser.add_argument('-algo', "--algorithm", type=str, default="PAL_FL_notarget",)
+    parser.add_argument('-algo', "--algorithm", type=str, default="FedTGP_PAL",)
     parser.add_argument('-jr', "--join_ratio", type=float, default=1,
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     # FedGH
     parser.add_argument('-slr', "--server_learning_rate", type=float, default=0.01)
     # FedTGP
-    parser.add_argument('-mart', "--margin_threthold", type=float, default=100.0)
+    parser.add_argument('-mart', "--margin_threthold", type=float, default=30.0)
     # FedKTL
     parser.add_argument('-GPath', "--generator_path", type=str, default='stylegan/stylegan-xl-models/imagenet64.pkl')
     parser.add_argument('-prompt', "--stable_diffusion_prompt", type=str, default='a cat')

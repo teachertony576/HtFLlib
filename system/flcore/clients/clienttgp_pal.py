@@ -15,7 +15,7 @@ class clientTGP_PAL(Client):
 
         self.loss_mse = nn.MSELoss()
         self.lamda = args.lamda
-        self.T=args.local_temperature
+        self.T=args.nontarget_temperature
         self.distill_loss_fn = VanillaKDLoss(temperature=args.temperature)
         self.publicdata_batch_size = args.publicdata_batch_size
 
@@ -51,17 +51,17 @@ class clientTGP_PAL(Client):
                 loss = self.loss(output, y)
 
                 #非目标蒸馏
-                #soft_outputs=F.softmax(output / self.T, dim=1)
-                non_targets_mask = torch.ones(self.publicdata_batch_size, self.num_classes).to(self.device).scatter_(1, y.view(-1, 1), 0)
-                non_target_soft_outputs = output[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes - 1)
-                with torch.no_grad():#减少显卡的使用
-                    prev_output = prev_model(x)
-                    #soft_prev_outpus = F.softmax(prev_output / self.T, dim=1)#使用self.distill_loss_fn可以不用softmax操作
-                    non_target_soft_prev_outputs = prev_output[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes  - 1)
+                # #soft_outputs=F.softmax(output / self.T, dim=1)
+                # non_targets_mask = torch.ones(self.publicdata_batch_size, self.num_classes).to(self.device).scatter_(1, y.view(-1, 1), 0)
+                # non_target_soft_outputs = output[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes - 1)
+                # with torch.no_grad():#减少显卡的使用
+                #     prev_output = prev_model(x)
+                #     #soft_prev_outpus = F.softmax(prev_output / self.T, dim=1)#使用self.distill_loss_fn可以不用softmax操作
+                #     non_target_soft_prev_outputs = prev_output[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes  - 1)
                 
-                inon_target_loss = self.distill_loss_fn(non_target_soft_outputs, non_target_soft_prev_outputs)
-                #inon_target_loss = inon_target_loss * (self.T ** 2)#会造成loss变得很大
-                loss+=inon_target_loss
+                # inon_target_loss = self.distill_nontarget_fn(non_target_soft_outputs, non_target_soft_prev_outputs)
+                # #inon_target_loss = inon_target_loss * (self.T ** 2)#会造成loss变得很大
+                # loss+=inon_target_loss
 
                 if global_protos is not None:
                     proto_new = copy.deepcopy(rep.detach())
@@ -72,6 +72,18 @@ class clientTGP_PAL(Client):
                     # we use MSE here following FedProto's official implementation, where lamda is set to 10 by default.
                     # see https://github.com/yuetan031/FedProto/blob/main/lib/update.py#L171
                     loss += self.loss_mse(proto_new, rep) * self.lamda
+                    
+                    #Prototype-Exemplar Distillation/PED loss /原型-示例蒸馏
+                    with torch.no_grad():#减少显卡的使用
+                        prev_rep = prev_model.base(x)
+                        # dot_product = torch.matmul(prev_rep, (rep-proto_new).T)
+                        # loss -= 0.1*torch.mean(torch.diagonal(dot_product))
+                        kl_div_loss = criterionKL(F.log_softmax(prev_rep-proto_new, dim=1), F.softmax(rep-proto_new, dim=1))
+                        loss += kl_div_loss
+                        
+
+
+
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -198,6 +210,7 @@ class clientTGP_PAL(Client):
         else:
             x = x.to(self.device)
         output = model(x)
+        
         loss = self.distill_loss_fn(output, pal_logits)
         optimizer.zero_grad()
         loss.backward()
