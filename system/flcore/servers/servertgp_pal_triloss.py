@@ -9,6 +9,7 @@ from threading import Thread
 from collections import defaultdict
 from torch.utils.data import DataLoader
 from utils.data_utils import get_random_batch
+import random
 
 class FedTGP_PAL_triloss(Server):
     def __init__(self, args, times):
@@ -218,6 +219,18 @@ class FedTGP_PAL_triloss(Server):
                 new_logits_i += weight[i][j] * clients_logits[j]
             new_logits_i=(1-self.Tau)*new_logits_i+self.Tau*clients_logits[i]
             save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
+    
+    
+    
+    def semi_hard_negative_mining(anchor_embedding, embeddings, labels, margin):
+        negative_indices = [i for i, label in enumerate(labels) if label != anchor_label]
+        negative_embeddings = [embeddings[i] for i in negative_indices]
+        distances = [torch.dist(anchor_embedding, emb) for emb in negative_embeddings]
+        semi_hard_negatives = [negative_indices[i] for i, dist in enumerate(distances) if dist > margin]
+        if semi_hard_negatives:
+            return random.choice(semi_hard_negatives)
+        else:
+            return random.choice(negative_indices)
 
 
 
