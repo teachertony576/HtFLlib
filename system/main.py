@@ -291,7 +291,7 @@ if __name__ == "__main__":
     parser.add_argument('-nb', "--num_classes", type=int, default=100)
     parser.add_argument('-m', "--model_family", type=str, default="HtFE8")
     parser.add_argument('-lbs', "--batch_size", type=int, default=10)
-    parser.add_argument('-pbs', "--publicdata_batch_size", type=int, default=10)
+    parser.add_argument('-pbs', "--publicdata_batch_size", type=int, default=20)
     parser.add_argument('-lr', "--local_learning_rate", type=float, default=0.01,
                         help="Local learning rate")
     parser.add_argument('-ld', "--learning_rate_decay", type=bool, default=False)
@@ -357,7 +357,7 @@ if __name__ == "__main__":
     #PAL_FL
     parser.add_argument('-T', "--temperature", type=float, default=20.0)#蒸馏温度
     parser.add_argument('-pd', "--public_data", type=str, default="Cifar10")
-    parser.add_argument('-lT', "--local_temperature", type=float, default=20.0)#本地蒸馏温度
+    parser.add_argument('-nT', "--nontarget_temperature", type=float, default=3.0)#本地蒸馏温度
     parser.add_argument('-Tau', "--Tau", type=float, default=1.0)#服务器端个性化聚合标签的时比例
 
     args = parser.parse_args()

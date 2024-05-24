@@ -12,10 +12,11 @@ class clientpalfl_notarget(Client):
     def __init__(self, args, id, train_samples, test_samples, **kwargs):
         super().__init__(args, id, train_samples, test_samples, **kwargs)
         torch.manual_seed(0)
+        self.distill_nontarget_fn = VanillaKDLoss(temperature=args.nontarget_temperature)
         self.distill_loss_fn = VanillaKDLoss(temperature=args.temperature)
         self.publicdata_batch_size = args.publicdata_batch_size
         self.lamda = args.lamda
-        self.T=args.local_temperature
+        self.T=args.nontarget_temperature
 
 
     def train(self):
@@ -52,14 +53,14 @@ class clientpalfl_notarget(Client):
 
                 #非目标蒸馏
                 #soft_outputs=F.softmax(output / self.T, dim=1)
-                non_targets_mask = torch.ones(self.publicdata_batch_size, self.num_classes).to(self.device).scatter_(1, y.view(-1, 1), 0)
-                non_target_soft_outputs = output[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes - 1)
+                non_targets_mask = torch.ones(self.batch_size, self.num_classes).to(self.device).scatter_(1, y.view(-1, 1), 0)
+                non_target_soft_outputs = output[non_targets_mask.bool()].view(self.batch_size, self.num_classes - 1)
                 with torch.no_grad():#减少显卡的使用
                     prev_output = prev_model(x)
                     #soft_prev_outpus = F.softmax(prev_output / self.T, dim=1)
-                    non_target_soft_prev_outputs = prev_output[non_targets_mask.bool()].view(self.publicdata_batch_size, self.num_classes  - 1)
+                    non_target_soft_prev_outputs = prev_output[non_targets_mask.bool()].view(self.batch_size, self.num_classes  - 1)
                 
-                inon_target_loss = self.distill_loss_fn(non_target_soft_outputs, non_target_soft_prev_outputs)
+                inon_target_loss = self.distill_nontarget_fn(non_target_soft_outputs, non_target_soft_prev_outputs)
                 #inon_target_loss = inon_target_loss * (self.T ** 2)#会造成loss变得很大
                 loss+=inon_target_loss
                 optimizer.zero_grad()
