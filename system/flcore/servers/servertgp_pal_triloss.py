@@ -133,13 +133,14 @@ class FedTGP_PAL_triloss(Server):
     def update_Gen(self):
         PROTO = load_item(self.role, 'PROTO', self.save_folder_name).to(self.device)
         Gen_opt = torch.optim.SGD(PROTO.parameters(), lr=self.server_learning_rate)
+        label_sever=torch.Tensor().to(self.device)
         PROTO.train()
         for e in range(self.server_epochs):
             proto_loader = DataLoader(self.uploaded_protos, self.batch_size, 
                                       drop_last=False, shuffle=True)
             for proto, y in proto_loader:
                 y = torch.Tensor(y).type(torch.int64).to(self.device)
-
+                label_sever=torch.cat((label_sever,y))
                 proto_gen = PROTO(list(range(self.num_classes)))
                 negative_proto = hard_negative_mining(proto,y)
                 proto_gen = proto_gen[y]
@@ -166,8 +167,9 @@ class FedTGP_PAL_triloss(Server):
         save_item(PROTO, self.role, 'PROTO', self.save_folder_name)
 
         PROTO.eval()
+        label_sever = torch.unique(label_sever).type(torch.int64).to('cpu')
         global_protos = defaultdict(list)
-        for class_id in range(self.num_classes):
+        for class_id in label_sever:
             global_protos[class_id] = PROTO(torch.tensor(class_id, device=self.device)).detach()
         save_item(global_protos, self.role, 'global_protos', self.save_folder_name)
 

@@ -306,7 +306,7 @@ if __name__ == "__main__":
     parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
     parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
                         help="Multiple update steps in one local epoch.")
-    parser.add_argument('-algo', "--algorithm", type=str, default="FedMD",)
+    parser.add_argument('-algo', "--algorithm", type=str, default="FedTGP_PAL_triloss",)
     parser.add_argument('-jr', "--join_ratio", type=float, default=1,
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,
@@ -350,7 +350,7 @@ if __name__ == "__main__":
     parser.add_argument('-Ts', "--T_start", type=float, default=0.95)
     parser.add_argument('-Te', "--T_end", type=float, default=0.98)
     # FedGH
-    parser.add_argument('-slr', "--server_learning_rate", type=float, default=0.001)
+    parser.add_argument('-slr', "--server_learning_rate", type=float, default=0.01)
     # FedTGP
     parser.add_argument('-mart', "--margin_threthold", type=float, default=30.0)
     # FedKTL
