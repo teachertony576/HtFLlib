@@ -25,7 +25,7 @@ class FedTGP_PAL_triloss(Server):
         # self.load_model()
         self.Budget = []
         self.num_classes = args.num_classes
-
+        self.triplet_loss = nn.TripletMarginLoss(margin=1.0, p=2)
         self.server_learning_rate = args.local_learning_rate
         self.batch_size = args.batch_size
         self.server_epochs = args.server_epochs
@@ -131,7 +131,7 @@ class FedTGP_PAL_triloss(Server):
         print('max_gap', self.max_gap)
             
     def update_Gen(self):
-        PROTO = load_item(self.role, 'PROTO', self.save_folder_name)
+        PROTO = load_item(self.role, 'PROTO', self.save_folder_name).to(self.device)
         Gen_opt = torch.optim.SGD(PROTO.parameters(), lr=self.server_learning_rate)
         PROTO.train()
         for e in range(self.server_epochs):
@@ -141,17 +141,21 @@ class FedTGP_PAL_triloss(Server):
                 y = torch.Tensor(y).type(torch.int64).to(self.device)
 
                 proto_gen = PROTO(list(range(self.num_classes)))
-
-                features_square = torch.sum(torch.pow(proto, 2), 1, keepdim=True)
-                centers_square = torch.sum(torch.pow(proto_gen, 2), 1, keepdim=True)
-                features_into_centers = torch.matmul(proto, proto_gen.T)
-                dist = features_square - 2 * features_into_centers + centers_square.T
-                dist = torch.sqrt(dist)
+                negative_proto = hard_negative_mining(proto,y)
+                proto_gen = proto_gen[y]
+                loss=self.triplet_loss(proto_gen,proto,negative_proto)
                 
-                one_hot = F.one_hot(y, self.num_classes).to(self.device)
-                gap2 = min(self.max_gap.item(), self.margin_threthold)
-                dist = dist + one_hot * gap2
-                loss = self.CEloss(-dist, y)
+                
+                # features_square = torch.sum(torch.pow(proto, 2), 1, keepdim=True)
+                # centers_square = torch.sum(torch.pow(proto_gen, 2), 1, keepdim=True)
+                # features_into_centers = torch.matmul(proto, proto_gen.T)
+                # dist = features_square - 2 * features_into_centers + centers_square.T
+                # dist = torch.sqrt(dist)
+                
+                # one_hot = F.one_hot(y, self.num_classes).to(self.device)
+                # gap2 = min(self.max_gap.item(), self.margin_threthold)
+                # dist = dist + one_hot * gap2
+                # loss = self.CEloss(-dist, y)
 
                 Gen_opt.zero_grad()
                 loss.backward()
@@ -219,18 +223,34 @@ class FedTGP_PAL_triloss(Server):
                 new_logits_i += weight[i][j] * clients_logits[j]
             new_logits_i=(1-self.Tau)*new_logits_i+self.Tau*clients_logits[i]
             save_item(new_logits_i, self.clients[i].role, 'pal_logits', self.clients[i].save_folder_name)#存个性化标签
+
+
     
-    
-    
-    def semi_hard_negative_mining(anchor_embedding, embeddings, labels, margin):
+
+
+def hard_negative_mining(embeddings,labels):
+    hard_negative_embbing = embeddings*0
+    index = 0
+    for anchor_embedding,anchor_label in zip(embeddings,labels):
+
         negative_indices = [i for i, label in enumerate(labels) if label != anchor_label]
-        negative_embeddings = [embeddings[i] for i in negative_indices]
-        distances = [torch.dist(anchor_embedding, emb) for emb in negative_embeddings]
-        semi_hard_negatives = [negative_indices[i] for i, dist in enumerate(distances) if dist > margin]
-        if semi_hard_negatives:
-            return random.choice(semi_hard_negatives)
-        else:
-            return random.choice(negative_indices)
+        negative_embeddings = torch.stack([embeddings[i] for i in negative_indices])
+        
+        # 计算与锚点样本的距离
+        distances = torch.norm(anchor_embedding - negative_embeddings, p=2, dim=1)
+        
+        # 找到距离最小的负样本
+        hard_negative_index = negative_indices[torch.argmin(distances).item()]
+        hard_negative_embbing[index]=embeddings[hard_negative_index]
+        index += 1
+        
+    return torch.tensor(hard_negative_embbing)
+
+
+    
+    
+    
+
 
 
 
@@ -255,7 +275,6 @@ class Trainable_prototypes(nn.Module):
         super().__init__()
 
         self.device = device
-
         self.embedings = nn.Embedding(num_classes, feature_dim)
         layers = [nn.Sequential(
             nn.Linear(feature_dim, server_hidden_dim), 

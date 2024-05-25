@@ -29,16 +29,15 @@ class Client(object):
         self.train_samples = train_samples
         self.test_samples = test_samples
         self.batch_size = args.batch_size
-        self.learning_rate = args.local_learning_rate
+        self.learning_rate = args.server_learning_rate
         self.local_epochs = args.local_epochs
 
         if args.save_folder_name == 'temp' or 'temp' not in args.save_folder_name:
             model = BaseHeadSplit(args, self.id).to(self.device)
             save_item(model, self.role, 'model', self.save_folder_name)
-            if self.algorithm == 'PAL_FL_notarget':
+            if self.algorithm in ['PAL_FL_notarget','FedTGP_PAL','FedTGP_PAL_triloss',]:
                 save_item(model, self.role, 'prev_model', self.save_folder_name)
-            if self.algorithm == 'FedTGP_PAL':
-                save_item(model, self.role, 'prev_model', self.save_folder_name)
+
 
         self.train_slow = kwargs['train_slow']
         self.send_slow = kwargs['send_slow']

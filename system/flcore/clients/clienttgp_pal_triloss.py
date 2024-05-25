@@ -22,8 +22,8 @@ class clientTGP_PAL_triloss(Client):
 
     def train(self):
         trainloader = self.load_train_data()
-        model = load_item(self.role, 'model', self.save_folder_name)
-        prev_model = load_item(self.role, 'prev_model', self.save_folder_name)
+        model = load_item(self.role, 'model', self.save_folder_name).to(self.device)
+        prev_model = load_item(self.role, 'prev_model', self.save_folder_name).to(self.device)
         save_item(model, self.role, 'prev_model', self.save_folder_name)
         global_protos = load_item('Server', 'global_protos', self.save_folder_name)
         optimizer = torch.optim.SGD(model.parameters(), lr=self.learning_rate)
@@ -111,7 +111,7 @@ class clientTGP_PAL_triloss(Client):
 
     def collect_protos(self):
         trainloader = self.load_train_data()
-        model = load_item(self.role, 'model', self.save_folder_name)
+        model = load_item(self.role, 'model', self.save_folder_name).to(self.device)
         model.eval()
 
         protos = defaultdict(list)
@@ -134,7 +134,7 @@ class clientTGP_PAL_triloss(Client):
 
     def test_metrics(self):
         testloader = self.load_test_data()
-        model = load_item(self.role, 'model', self.save_folder_name)
+        model = load_item(self.role, 'model', self.save_folder_name).to(self.device)
         global_protos = load_item('Server', 'global_protos', self.save_folder_name)
         model.eval()
 
@@ -166,7 +166,7 @@ class clientTGP_PAL_triloss(Client):
 
     def train_metrics(self):
         trainloader = self.load_train_data()
-        model = load_item(self.role, 'model', self.save_folder_name)
+        model = load_item(self.role, 'model', self.save_folder_name).to(self.device)
         global_protos = load_item('Server', 'global_protos', self.save_folder_name)
         # model.to(self.device)
         model.eval()
@@ -197,7 +197,7 @@ class clientTGP_PAL_triloss(Client):
         return losses, train_num
     
     def train_publicdata(self):
-        model = load_item(self.role, 'model', self.save_folder_name)
+        model = load_item(self.role, 'model', self.save_folder_name).to(self.device)
         optimizer = torch.optim.SGD(model.parameters(), lr=self.learning_rate)
         pal_logits = load_item(self.role, 'pal_logits', self.save_folder_name)
 

@@ -24,7 +24,8 @@ from flcore.servers.serverpalfl_nontarget import PAL_FL_notarget
 from utils.result_utils import average_data
 from utils.mem_utils import MemReporter
 from flcore.servers.servertgp_pal import FedTGP_PAL
-
+from flcore.servers.servertgp_pal_triloss import FedTGP_PAL_triloss
+from flcore.servers.serverfedmd import FedMD
 
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
@@ -247,9 +248,15 @@ def run(args):
         elif args.algorithm == "PAL_FL_notarget":
             server = PAL_FL_notarget(args, i)
 
+        elif args.algorithm == "FedTGP_PAL_triloss":
+            server = FedTGP_PAL_triloss(args, i)
+
         elif args.algorithm == "FedTGP_PAL":
             server = FedTGP_PAL(args, i)
-            
+
+        elif args.algorithm == "FedMD":
+            server = FedMD(args, i)
+
         elif args.algorithm == "FedKTL-stylegan-xl":
             server = FedKTL_stylegan_xl(args, i)
 
@@ -286,7 +293,7 @@ if __name__ == "__main__":
                         help="The goal for this experiment")
     parser.add_argument('-dev', "--device", type=str, default="cuda",
                         choices=["cpu", "cuda"])
-    parser.add_argument('-did', "--device_id", type=str, default="5")
+    parser.add_argument('-did', "--device_id", type=str, default="1")
     parser.add_argument('-data', "--dataset", type=str, default="Cifar100-dir")
     parser.add_argument('-nb', "--num_classes", type=int, default=100)
     parser.add_argument('-m', "--model_family", type=str, default="HtFE8")
@@ -299,12 +306,12 @@ if __name__ == "__main__":
     parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
     parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
                         help="Multiple update steps in one local epoch.")
-    parser.add_argument('-algo', "--algorithm", type=str, default="FedTGP_PAL",)
+    parser.add_argument('-algo', "--algorithm", type=str, default="FedMD",)
     parser.add_argument('-jr', "--join_ratio", type=float, default=1,
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,
                         help="Random ratio of clients per round")
-    parser.add_argument('-nc', "--num_clients", type=int, default=2,
+    parser.add_argument('-nc', "--num_clients", type=int, default=20,
                         help="Total number of clients")
     parser.add_argument('-pv', "--prev", type=int, default=0,
                         help="Previous Running times")
@@ -343,7 +350,7 @@ if __name__ == "__main__":
     parser.add_argument('-Ts', "--T_start", type=float, default=0.95)
     parser.add_argument('-Te', "--T_end", type=float, default=0.98)
     # FedGH
-    parser.add_argument('-slr', "--server_learning_rate", type=float, default=0.01)
+    parser.add_argument('-slr', "--server_learning_rate", type=float, default=0.001)
     # FedTGP
     parser.add_argument('-mart', "--margin_threthold", type=float, default=30.0)
     # FedKTL

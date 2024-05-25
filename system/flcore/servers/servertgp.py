@@ -118,7 +118,7 @@ class FedTGP(Server):
         print('max_gap', self.max_gap)
             
     def update_Gen(self):
-        PROTO = load_item(self.role, 'PROTO', self.save_folder_name)
+        PROTO = load_item(self.role, 'PROTO', self.save_folder_name).to(self.device)
         Gen_opt = torch.optim.SGD(PROTO.parameters(), lr=self.server_learning_rate)
         PROTO.train()
         for e in range(self.server_epochs):
