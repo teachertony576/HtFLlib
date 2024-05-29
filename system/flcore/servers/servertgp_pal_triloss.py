@@ -25,7 +25,7 @@ class FedTGP_PAL_triloss(Server):
         # self.load_model()
         self.Budget = []
         self.num_classes = args.num_classes
-        self.triplet_loss = nn.TripletMarginLoss(margin=1.0, p=2)
+        self.triplet_loss = nn.TripletMarginLoss(margin=5.0, p=2)
         self.server_learning_rate = args.local_learning_rate
         self.batch_size = args.batch_size
         self.server_epochs = args.server_epochs

@@ -64,6 +64,7 @@ class clientpalfl_notarget(Client):
                 inon_target_loss = self.distill_nontarget_fn(non_target_soft_outputs, non_target_soft_prev_outputs)
                 #inon_target_loss = inon_target_loss * (self.T ** 2)#会造成loss变得很大
                 loss+=inon_target_loss
+                
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
