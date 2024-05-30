@@ -292,7 +292,7 @@ if __name__ == "__main__":
     parser.add_argument('-go', "--goal", type=str, default="test", 
                         help="The goal for this experiment")
     parser.add_argument('-dev', "--device", type=str, default="cuda",
-                        choices=["cpu", "cuda"])
+                        choices=["cpu", "cuda","mps"])
     parser.add_argument('-did', "--device_id", type=str, default="1")
     parser.add_argument('-data', "--dataset", type=str, default="Cifar100-dir")
     parser.add_argument('-nb', "--num_classes", type=int, default=100)
