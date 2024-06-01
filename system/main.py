@@ -293,7 +293,7 @@ if __name__ == "__main__":
                         help="The goal for this experiment")
     parser.add_argument('-dev', "--device", type=str, default="cuda",
                         choices=["cpu", "cuda","mps"])
-    parser.add_argument('-did', "--device_id", type=str, default="1")
+    parser.add_argument('-did', "--device_id", type=str, default="0")
     parser.add_argument('-data', "--dataset", type=str, default="Cifar100-dir")
     parser.add_argument('-nb', "--num_classes", type=int, default=100)
     parser.add_argument('-m', "--model_family", type=str, default="HtFE8")
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     parser.add_argument('-gr', "--global_rounds", type=int, default=2000)
     parser.add_argument('-ls', "--local_epochs", type=int, default=1, 
                         help="Multiple update steps in one local epoch.")
-    parser.add_argument('-algo', "--algorithm", type=str, default="PAL_FL",)
+    parser.add_argument('-algo', "--algorithm", type=str, default="FedTGP_PAL_triloss",)
     parser.add_argument('-jr', "--join_ratio", type=float, default=1,
                         help="Ratio of clients per round")
     parser.add_argument('-rjr', "--random_join_ratio", type=bool, default=False,

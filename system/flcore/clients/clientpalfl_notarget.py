@@ -89,37 +89,7 @@ class clientpalfl_notarget(Client):
         self.train_time_cost['total_cost'] += time.time() - start_time
 
 
-    def train_metrics(self):
-        trainloader = self.load_train_data()
-        model = load_item(self.role, 'model', self.save_folder_name)
-        global_logits = load_item('Server', 'global_logits', self.save_folder_name)
-        # model.to(self.device)
-        model.eval()
 
-        train_num = 0
-        losses = 0
-        with torch.no_grad():
-            for x, y in trainloader:
-                if type(x) == type([]):
-                    x[0] = x[0].to(self.device)
-                else:
-                    x = x.to(self.device)
-                y = y.to(self.device)
-                output = model(x)
-                loss = self.loss(output, y)
-
-                if global_logits != None:
-                    logit_new = copy.deepcopy(output.detach())
-                    for i, yy in enumerate(y):
-                        y_c = yy.item()
-                        if type(global_logits[y_c]) != type([]):
-                            logit_new[i, :] = global_logits[y_c].data
-                    loss += self.loss(output, logit_new.softmax(dim=1)) * self.lamda
-                    
-                train_num += y.shape[0]
-                losses += loss.item() * y.shape[0]
-
-        return losses, train_num
     
 
     def train_publicdata(self):

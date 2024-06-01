@@ -29,7 +29,7 @@ class Client(object):
         self.train_samples = train_samples
         self.test_samples = test_samples
         self.batch_size = args.batch_size
-        self.learning_rate = args.server_learning_rate
+        self.learning_rate = args.local_learning_rate
         self.local_epochs = args.local_epochs
 
         if args.save_folder_name == 'temp' or 'temp' not in args.save_folder_name:

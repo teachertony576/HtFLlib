@@ -21,7 +21,7 @@ class Server(object):
         self.local_epochs = args.local_epochs
         self.batch_size = args.batch_size
         self.publicdata_batch_size = args.publicdata_batch_size
-        self.learning_rate = args.local_learning_rate
+        self.learning_rate = args.server_learning_rate
         self.num_clients = args.num_clients
         self.join_ratio = args.join_ratio
         self.random_join_ratio = args.random_join_ratio
